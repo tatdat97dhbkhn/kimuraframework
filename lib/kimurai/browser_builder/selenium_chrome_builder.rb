@@ -30,7 +30,7 @@ module Kimurai::BrowserBuilder
         end
 
         # See all options here: https://seleniumhq.github.io/selenium/docs/api/rb/Selenium/WebDriver/Chrome/Options.html
-        driver_options = Selenium::WebDriver::Chrome::Options.new(opts)
+        driver_options = Selenium::WebDriver::Chrome::Options.new(**opts)
 
         # Window size
         if size = @config[:window_size].presence
