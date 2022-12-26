@@ -12,7 +12,7 @@ module Kimurai
       current_thread_id = Thread.current.object_id
       thread_type = Thread.main == Thread.current ? "M" : "C"
       output = "%s, [%s#%d] [%s: %s] %5s -- %s: %s\n"
-        .freeze % [severity[0..0], datetime, $$, thread_type, current_thread_id, severity, progname, msg]
+                 .freeze % [severity[0..0], datetime, $$, thread_type, current_thread_id, severity, progname, msg]
 
       if Kimurai.configuration.colorize_logger != false && Kimurai.env == "development"
         Rbcat.colorize(output, predefined: [:jsonhash, :logger])
@@ -93,10 +93,10 @@ module Kimurai
 
     def self.logger
       @logger ||= Kimurai.configuration.logger || begin
-        log_level = (ENV["LOG_LEVEL"] || Kimurai.configuration.log_level || "DEBUG").to_s.upcase
-        log_level = "Logger::#{log_level}".constantize
-        Logger.new(STDOUT, formatter: LoggerFormatter, level: log_level, progname: name)
-      end
+                                                    log_level = (ENV["LOG_LEVEL"] || Kimurai.configuration.log_level || "DEBUG").to_s.upcase
+                                                    log_level = "Logger::#{log_level}".constantize
+                                                    Logger.new(STDOUT, formatter: LoggerFormatter, level: log_level, progname: name)
+                                                  end
     end
 
     def self.crawl!(exception_on_fail: true)
@@ -123,7 +123,7 @@ module Kimurai
       if start_urls
         start_urls.each do |start_url|
           if start_url.class == Hash
-            spider.request_to(:parse, start_url)
+            spider.request_to(:parse, **start_url)
           else
             spider.request_to(:parse, url: start_url)
           end
@@ -154,7 +154,13 @@ module Kimurai
     end
 
     def self.parse!(handler, *args, **request)
-      spider = self.new
+      if request.has_key? :config
+        config = request[:config]
+        request.delete :config
+      else
+        config = {}
+      end
+      spider = self.new config: config
 
       if args.present?
         spider.public_send(handler, *args)
@@ -201,7 +207,9 @@ module Kimurai
       visited = delay ? browser.visit(url, delay: delay) : browser.visit(url)
       return unless visited
 
-      public_send(handler, browser.current_response(response_type), { url: url, data: data })
+      options = { url: url, data: data }
+
+      public_send(handler, browser.current_response(response_type), **options)
     end
 
     def console(response = nil, url: nil, data: {})
@@ -222,13 +230,13 @@ module Kimurai
 
     def save_to(path, item, format:, position: true, append: false)
       @savers[path] ||= begin
-        options = { format: format, position: position, append: append }
-        if self.with_info
-          self.class.savers[path] ||= Saver.new(path, options)
-        else
-          Saver.new(path, options)
-        end
-      end
+                          options = { format: format, position: position, append: append }
+                          if self.with_info
+                            self.class.savers[path] ||= Saver.new(path, options)
+                          else
+                            Saver.new(path, options)
+                          end
+                        end
 
       @savers[path].save(item)
     end
@@ -304,9 +312,9 @@ module Kimurai
           part.each do |url_data|
             if url_data.class == Hash
               if url_data[:url].present? && url_data[:data].present?
-                spider.request_to(handler, delay, url_data)
+                spider.request_to(handler, delay, **url_data)
               else
-                spider.public_send(handler, url_data)
+                spider.public_send(handler, **url_data)
               end
             else
               spider.request_to(handler, delay, url: url_data, data: data)

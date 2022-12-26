@@ -15,12 +15,12 @@ class GithubSpider < Kimurai::Base
   @engine = :selenium_chrome
   @start_urls = ["https://github.com/search?q=Ruby%20Web%20Scraping"]
   @config = {
-    user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.84 Safari/537.36",
-    before_request: { delay: 4..7 }
+          user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.84 Safari/537.36",
+          before_request: { delay: 4..7 }
   }
 
   def parse(response, url:, data: {})
-    response.xpath("//ul[@class='repo-list']/div//h3/a").each do |a|
+    response.xpath("//ul[@class='repo-list']//a[@class='v-align-middle']").each do |a|
       request_to :parse_repo_page, url: absolute_url(a[:href], base: url)
     end
 
@@ -36,7 +36,7 @@ class GithubSpider < Kimurai::Base
     item[:repo_name] = response.xpath("//h1/strong[@itemprop='name']/a").text
     item[:repo_url] = url
     item[:description] = response.xpath("//span[@itemprop='about']").text.squish
-    item[:tags] = response.xpath("//div[@id='topics-list-container']/div/a").map { |a| a.text.squish }
+    item[:tags] = response.xpath("//div[starts-with(@class, 'list-topics-container')]/a").map { |a| a.text.squish }
     item[:watch_count] = response.xpath("//ul[@class='pagehead-actions']/li[contains(., 'Watch')]/a[2]").text.squish
     item[:star_count] = response.xpath("//ul[@class='pagehead-actions']/li[contains(., 'Star')]/a[2]").text.squish
     item[:fork_count] = response.xpath("//ul[@class='pagehead-actions']/li[contains(., 'Fork')]/a[2]").text.squish
@@ -654,7 +654,7 @@ def request_to(handler, url:, data: {})
   request_data = { url: url, data: data }
 
   browser.visit(url)
-  public_send(handler, browser.current_response, request_data)
+  public_send(handler, browser.current_response, **request_data)
 end
 ```
 </details><br>
@@ -1344,7 +1344,7 @@ end # =>
 
 So what if you're don't care about stats and just want to process request to a particular spider method and get the returning value from this method? Use `.parse!` instead:
 
-#### `.parse!(:method_name, url:)` method
+#### `.parse!(:method_name, url:, config: {})` method
 
 `.parse!` (class method) creates a new spider instance and performs a request to given method with a given url. Value from the method will be returned back:
 
@@ -1361,6 +1361,8 @@ end
 
 ExampleSpider.parse!(:parse, url: "https://example.com/")
 # => "Example Domain"
+# this is example when you need to override config
+ExampleSpider.parse!(:parse, url: "https://example.com/", config: { before_request: { clear_and_set_cookies: true } } )
 ```
 
 Like `.crawl!`, `.parse!` method takes care of a browser instance and kills it (`browser.destroy_driver!`) before returning the value. Unlike `.crawl!`, `.parse!` method can be called from different threads at the same time:
@@ -1656,21 +1658,21 @@ Structure of the project:
 ```bash
 .
 ├── config/
-│   ├── initializers/
-│   ├── application.rb
-│   ├── automation.yml
-│   ├── boot.rb
-│   └── schedule.rb
+│   ├── initializers/
+│   ├── application.rb
+│   ├── automation.yml
+│   ├── boot.rb
+│   └── schedule.rb
 ├── spiders/
-│   └── application_spider.rb
+│   └── application_spider.rb
 ├── db/
 ├── helpers/
-│   └── application_helper.rb
+│   └── application_helper.rb
 ├── lib/
 ├── log/
 ├── pipelines/
-│   ├── validator.rb
-│   └── saver.rb
+│   ├── validator.rb
+│   └── saver.rb
 ├── tmp/
 ├── .env
 ├── Gemfile

@@ -17,7 +17,6 @@ module Capybara
           check_request_options(visit_uri) unless skip_request_options
           driver.requests += 1 and logger.info "Browser: started get request to: #{visit_uri}"
           spider.class.update(:visits, :requests) if spider.with_info
-
           original_visit(visit_uri)
         rescue => e
           if match_error?(e, type: :to_skip)
